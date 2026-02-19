@@ -2,23 +2,44 @@ name: Build Android APK
 on:
   push:
     branches: [ main ]
-  workflow_dispatch:
+  workflow_dispatch: # تسمح لك بتشغيل البناء يدوياً من تبويب Actions
 
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      - name: set up JDK 17
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Set up JDK 17
         uses: actions/setup-java@v3
         with:
           java-version: '17'
           distribution: 'temurin'
-      
-      - name: Build APK
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+
+      - name: Install Dependencies
         run: |
-          echo "Building Novexa Protocol..."
-          # هذا الكود سيقوم بتجهيز البيئة في المرات القادمة
-          
-      - name: Status Check
-        run: echo "The Sovereign Engine is Ready."
+          npm install
+          npm install @capacitor/core @capacitor/android @capacitor/cli
+
+      - name: Build Web Assets
+        run: npm run build
+
+      - name: Build Android APK
+        run: |
+          npx cap add android || true
+          npx cap sync
+          cd android
+          chmod +x gradlew
+          ./gradlew assembleDebug
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v3
+        with:
+          name: Novexa-Final-App
+          path: android/app/build/outputs/apk/debug/app-debug.apk
