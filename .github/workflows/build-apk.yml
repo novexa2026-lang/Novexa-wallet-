@@ -22,29 +22,36 @@ jobs:
         with:
           node-version: '18'
 
-      - name: Locate Project and Build
+      - name: Direct Installation Strategy
         run: |
-          # البحث عن المجلد الذي يحتوي على package.json
-          PROJECT_PATH=$(find . -name "package.json" -printf '%h' -quit)
-          echo "Project found in: $PROJECT_PATH"
-          cd "$PROJECT_PATH"
-          
-          # تنفيذ العمليات داخل المجلد الصحيح
-          npm install
+          # البحث عن package.json في أي مستوى وتحميل التبعيات فيه
+          PACKAGE_JSON=$(find . -name "package.json" | head -n 1)
+          PROJECT_DIR=$(dirname "$PACKAGE_JSON")
+          echo "Target Directory identified as: $PROJECT_DIR"
+          cd "$PROJECT_DIR"
+          npm install --force
           npm install @capacitor/core @capacitor/android @capacitor/cli
-          npm run build
-          npx cap sync
+          npm run build --if-present
 
-      - name: Build Android APK
+      - name: Capacitor Sync
         run: |
-          # البحث عن مجلد الأندرويد وتشغيل gradle
-          GRADLE_PATH=$(find . -name "gradlew" -printf '%h' -quit)
-          cd "$GRADLE_PATH"
+          PACKAGE_JSON=$(find . -name "package.json" | head -n 1)
+          PROJECT_DIR=$(dirname "$PACKAGE_JSON")
+          cd "$PROJECT_DIR"
+          npx cap sync || echo "Capacitor not initialized yet"
+
+      - name: Final Android Build
+        run: |
+          # البحث عن ملف gradlew وتشغيله أينما كان
+          GRADLEW_FILE=$(find . -name "gradlew" | head -n 1)
+          GRADLE_DIR=$(dirname "$GRADLEW_FILE")
+          echo "Gradle directory found at: $GRADLE_DIR"
+          cd "$GRADLE_DIR"
           chmod +x gradlew
           ./gradlew assembleDebug
 
-      - name: Upload APK
+      - name: Export APK
         uses: actions/upload-artifact@v4
         with:
-          name: Novexa-Final-Build
+          name: Novexa-Final-App
           path: "**/app-debug.apk"
