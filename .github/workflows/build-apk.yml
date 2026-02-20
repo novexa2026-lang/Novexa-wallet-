@@ -1,4 +1,4 @@
-name: Build Novexa Wallet APK
+name: Build Novexa APK
 
 on:
   push:
@@ -13,48 +13,21 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Debug Workspace
-        run: |
-          echo "Workspace: $GITHUB_WORKSPACE"
-          ls -la
-          find . -maxdepth 3 -name "package.json"
-
-      - name: Locate Root package.json Safely
-        id: locate
-        run: |
-          REAL_PATH=$(find $GITHUB_WORKSPACE -maxdepth 3 -name "package.json" \
-            ! -path "*/node_modules/*" \
-            ! -path "*/android/*" \
-            -printf '%h\n' | head -n 1)
-
-          if [ -z "$REAL_PATH" ]; then
-            echo "No valid package.json found"
-            exit 1
-          fi
-
-          echo "PROJECT_DIR=$REAL_PATH" >> $GITHUB_ENV
-          echo "Found project at: $REAL_PATH"
-
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: 18
-          cache: npm
-          cache-dependency-path: ${{ env.PROJECT_DIR }}/package-lock.json
 
       - name: Install Dependencies
-        working-directory: ${{ env.PROJECT_DIR }}
-        run: npm ci
+        run: npm install
 
       - name: Build Web
-        working-directory: ${{ env.PROJECT_DIR }}
-        run: npm run build --if-present
+        run: npm run build
 
       - name: Sync Capacitor
-        working-directory: ${{ env.PROJECT_DIR }}
         run: npx cap sync android
 
-      - name: Setup Java
+      - name: Setup Java 17
         uses: actions/setup-java@v4
         with:
           distribution: temurin
@@ -62,12 +35,12 @@ jobs:
 
       - name: Build APK
         run: |
-          cd ${{ env.PROJECT_DIR }}/android
+          cd android
           chmod +x gradlew
           ./gradlew assembleDebug
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: Novexa-Wallet-Build
-          path: ${{ env.PROJECT_DIR }}/android/app/build/outputs/apk/debug/app-debug.apk
+          name: Novexa-APK
+          path: android/app/build/outputs/apk/debug/app-debug.apk
