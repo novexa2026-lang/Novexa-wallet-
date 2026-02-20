@@ -22,36 +22,22 @@ jobs:
         with:
           node-version: '18'
 
-      - name: Direct Installation Strategy
+      - name: Build Web Assets (Capacitor Flow)
         run: |
-          # البحث عن package.json في أي مستوى وتحميل التبعيات فيه
-          PACKAGE_JSON=$(find . -name "package.json" | head -n 1)
-          PROJECT_DIR=$(dirname "$PACKAGE_JSON")
-          echo "Target Directory identified as: $PROJECT_DIR"
-          cd "$PROJECT_DIR"
-          npm install --force
-          npm install @capacitor/core @capacitor/android @capacitor/cli
+          # البحث عن package.json والدخول لمجلده
+          cd $(find . -name "package.json" -printf '%h' -quit)
+          npm install
           npm run build --if-present
 
-      - name: Capacitor Sync
+      - name: Build Android APK
         run: |
-          PACKAGE_JSON=$(find . -name "package.json" | head -n 1)
-          PROJECT_DIR=$(dirname "$PACKAGE_JSON")
-          cd "$PROJECT_DIR"
-          npx cap sync || echo "Capacitor not initialized yet"
-
-      - name: Final Android Build
-        run: |
-          # البحث عن ملف gradlew وتشغيله أينما كان
-          GRADLEW_FILE=$(find . -name "gradlew" | head -n 1)
-          GRADLE_DIR=$(dirname "$GRADLEW_FILE")
-          echo "Gradle directory found at: $GRADLE_DIR"
-          cd "$GRADLE_DIR"
+          # البحث عن مجلد android والدخول إليه لتشغيل Gradle
+          cd $(find . -name "gradlew" -printf '%h' -quit)
           chmod +x gradlew
           ./gradlew assembleDebug
 
-      - name: Export APK
+      - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: Novexa-Final-App
+          name: Novexa-App
           path: "**/app-debug.apk"
